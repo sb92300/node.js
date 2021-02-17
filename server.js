@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({extended : true }));
 // 8080 = 서버 띄울 포트 번호 function은 포트 띄운 후 실행 코드
 
 var db;
-MongoClient.connect('mongodb+srv://몽고db ID: 비밀번호@cluster0.hthnk.mongodb.net/DB 이름?retryWrites=true&w=majority', function(err, client) {
+MongoClient.connect('mongodb+srv://mongo1234:1q2w3e4r@cluster0.hthnk.mongodb.net/todoapp?retryWrites=true&w=majority', function(err, client) {
     
     if(err) return console.log(err)
 
@@ -44,16 +44,34 @@ app.get('/', function(req, res) {
 app.get('/write', (req, res) => {
     res.sendFile(__dirname + '/write.html')
 });
-//list접속하면 db 저장된 자료 html로 보여주기
-app.get('/list', function(req, res) {
-    res.render('list.ejs');
-});
 
 //write.html에서 form태그 서버에 보내기
 app.post('/newPost', function(req, res){
     res.send('전송완료');
-    db.collection('post').insertOne({_id : 1 , 제목 : req.body.title , 날짜 : req.body.date}, function(err, result) {
-        if(err) console.log(err);
-        console.log('저장완료');
+    db.collection('counter').findOne({name : '게시물개수'}, function(err, result){
+        console.log(result.totalPost);
+        var totalPost = result.totalPost;
+
+        db.collection('post').insertOne({ _id : totalPost + 1, 제목 : req.body.title , 날짜 : req.body.date}, function(err, result) {
+            if(err) console.log(err);
+            console.log('저장완료');
+            //counter라는 collection에 totalPost라는 항목에 1을 증가시키기.
+            db.collection('counter').updateOne({name : '게시물개수'}, { $inc : {totalPost : 1}}, function(err, result){
+                    //$inc = operator라고 함. 필요할 때 마다 검색
+                    if(err) {return console.log(err)};
+            });
+         });    
     });
+});
+
+//list접속하면 db 저장된 자료 html로 보여주기
+app.get('/list', function(req, res) {
+    db.collection('post').find().toArray(function(err, result){ // post라는 이름을 가진 db에서 모든 데이터 찾아서 갖고 오는 문법
+        console.log(result);
+        res.render('list.ejs', {posts : result});
+    });
+});
+
+app.delete('/delete', function(req, res) {
+    console.log(req.body);
 });
