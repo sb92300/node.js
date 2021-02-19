@@ -3,8 +3,14 @@ const app = express();
 const bodyParser = require('body-parser');
 //body-parser 사용 가능하게 함.
 const MongoClient = require('mongodb').MongoClient;
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 app.set('view engine', 'ejs');
 
+
+app.use('/public', express.static('public'));
+//내가 만든 css 파일을 사용하기 위해 작성 / public 폴더 안에 만들어 넣어야 됨. 미들웨어(요청과 응답 사이에 동작함) 라고 함
 
 app.use(bodyParser.urlencoded({extended : true }));
 //8080포트를 열어주고 이 포트로 접근해야만 서버를 열어줌
@@ -14,7 +20,7 @@ app.use(bodyParser.urlencoded({extended : true }));
 // 8080 = 서버 띄울 포트 번호 function은 포트 띄운 후 실행 코드
 
 var db;
-MongoClient.connect('mongodb+srv://<id>:<pw>@cluster0.hthnk.mongodb.net/<dbname>?retryWrites=true&w=majority', function(err, client) {
+MongoClient.connect('mongodb+srv://id:pw@cluster0.hthnk.mongodb.net/dbname?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
     
     if(err) return console.log(err)
 
@@ -30,11 +36,39 @@ MongoClient.connect('mongodb+srv://<id>:<pw>@cluster0.hthnk.mongodb.net/<dbname>
 
 //index.html 불러오기
 app.get('/', function(req, res) {
-    res.sendFile(__dirname + '/index.html');
+    res.render('index.ejs');
 });
 //wirte.html 불러오기
 app.get('/write', (req, res) => {
-    res.sendFile(__dirname + '/write.html')
+    res.render('write.ejs');
+});
+
+//list접속하면 db 저장된 자료 html로 보여주기
+app.get('/list', function(req, res) {
+    db.collection('post').find().toArray(function(err, result){ // post라는 이름을 가진 db에서 모든 데이터 찾아서 갖고 오는 문법
+        console.log(result);
+        //가져온 값 = result
+        res.render('list.ejs', {posts : result});
+        // 가져온 값(result)을 posts라고 이름 짓고 렌더링 함. 그러므로 ejs 파일에서는 이 값을 부를 때 posts.제목으로 불러야 됨.
+    });
+});
+
+app.get('/detail/:id', function(req, res) {
+    //user가 /detail/??으로 접속하면
+    db.collection('post').findOne({_id : parseInt(req.params.id) }, function(err, result) {
+        //db에서 req.params.id 값에 맞는 게시물을 찾아온다. (찾은 게시물 = result)
+        //req.params.id == '/detail/:id / 단순히 req.params.id라고 입력하면 id값이 string. 우리는 int값으로 저장했기 때문에 parseInt를 이용해 값을 int로 변경해준다.
+        console.log(result);
+        res.render('detail.ejs', { data : result });
+        //data라는 이름의 찾은 게시물을 렌더링 해준다 (data는 임의로 지은 이름)
+    });
+});
+
+app.get('/edit/:id', function(req, res) {
+    db.collection('post').findOne({_id : parseInt(req.params.id) }, function(err, result) {
+        console.log(result);
+        res.render('edit.ejs', {post : result });
+    });
 });
 
 //write.html에서 form태그 서버에 보내기
@@ -56,13 +90,6 @@ app.post('/newPost', function(req, res){
     });
 });
 
-//list접속하면 db 저장된 자료 html로 보여주기
-app.get('/list', function(req, res) {
-    db.collection('post').find().toArray(function(err, result){ // post라는 이름을 가진 db에서 모든 데이터 찾아서 갖고 오는 문법
-        console.log(result);
-        res.render('list.ejs', {posts : result});
-    });
-});
 
 app.delete('/delete', function(req, res) {
     console.log(req.body);
