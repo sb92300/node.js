@@ -21,7 +21,7 @@
                 <h4>할일 : <%= posts[i].제목 %></h4>
                 <p>마감일 : <%= posts[i].날짜  %> </p>
               <button class="delete btn btn-danger" data-id="<%= posts[i]._id %>">delete</button>
-              <button class="delete btn btn-primary" data-id="<%= posts[i]._id %>">edit</button>
+              <button class="edit btn btn-primary" data-id="<%= posts[i]._id %>">edit</button>
             </li>
             <% } %>
           </ul>
@@ -42,7 +42,6 @@
           console.log(xhr, textstatus, errorThrown);
         });
       });
-
       </script>
     <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>

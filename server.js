@@ -13,14 +13,9 @@ app.use('/public', express.static('public'));
 //내가 만든 css 파일을 사용하기 위해 작성 / public 폴더 안에 만들어 넣어야 됨. 미들웨어(요청과 응답 사이에 동작함) 라고 함
 
 app.use(bodyParser.urlencoded({extended : true }));
-//8080포트를 열어주고 이 포트로 접근해야만 서버를 열어줌
-// app.listen(8080, function () {
-//     console.log('listening on 8080');
-// });
-// 8080 = 서버 띄울 포트 번호 function은 포트 띄운 후 실행 코드
 
 var db;
-MongoClient.connect('mongodb+srv://id:pw@cluster0.hthnk.mongodb.net/dbname?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
+MongoClient.connect('mongodb+srv://ID:PW@cluster0.hthnk.mongodb.net/DBNAME?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
     
     if(err) return console.log(err)
 
@@ -71,6 +66,14 @@ app.get('/edit/:id', function(req, res) {
     });
 });
 
+app.put('/edit', function(req, res) {
+    db.collection('post').updateOne({_id : parseInt(req.body.id)}, {$set : {제목 : req.body.title , 날짜 : req.body.date }}, function(err, result) {
+    // edit.ejs에서 input의 값을 가져올 때, req.body.input의 name 값 + int 값 이므로 parseInt 
+    console.log('수정완료')
+    res.redirect('/list');
+    });
+});
+
 //write.html에서 form태그 서버에 보내기
 app.post('/newPost', function(req, res){
     res.send('전송완료');
@@ -83,7 +86,7 @@ app.post('/newPost', function(req, res){
             console.log('저장완료');
             //counter라는 collection에 totalPost라는 항목에 1을 증가시키기.
             db.collection('counter').updateOne({name : '게시물개수'}, { $inc : {totalPost : 1}}, function(err, result){
-                    //$inc = operator라고 함. 필요할 때 마다 검색
+                    //$inc = operator라고 함 숫자를 증가 시킬 때 사용. 필요할 때 마다 검색
                     if(err) {return console.log(err)};
             });
          });    
