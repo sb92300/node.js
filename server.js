@@ -4,7 +4,16 @@ const bodyParser = require('body-parser');
 //body-parser 사용 가능하게 함.
 const MongoClient = require('mongodb').MongoClient;
 const methodOverride = require('method-override');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const session = require('express-session');
+
+
+
 app.use(methodOverride('_method'));
+app.use(session({secret : '비밀코드', resave: true, saveUninitialized: false}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.set('view engine', 'ejs');
 
@@ -66,6 +75,26 @@ app.get('/edit/:id', function(req, res) {
     });
 });
 
+app.get('/login', function(req, res) {
+    res.render('login.ejs');
+});
+
+app.get('/mypage', checkLogin, function(req, res) {
+    //checkLogin 위치가 미들웨어 넣는 위치. mypage로 요청을 하면 checkLogin이 항상 실행 됨.
+    console.log(req.user);
+    res.render('mypage.ejs', {user : req.user});
+    //('mypage.ejs', {이 중괄호를 이용하여 ejs 안에 데이터를 넣을 수 있음})
+});
+
+function checkLogin(req, res , next) {
+    if(req.user) {
+        next();
+        //로그인 후 세션이 있으면 req.user가 항상 있음. 그러므로 req.user가 있으면(로그인해서 세션이 있으면) next()(통과)
+    } else {
+        res.send('login이 되어있지 않습니다.');
+    }
+}
+
 app.put('/edit', function(req, res) {
     db.collection('post').updateOne({_id : parseInt(req.body.id)}, {$set : {제목 : req.body.title , 날짜 : req.body.date }}, function(err, result) {
     // edit.ejs에서 input의 값을 가져올 때, req.body.input의 name 값 + int 값 이므로 parseInt 
@@ -76,7 +105,6 @@ app.put('/edit', function(req, res) {
 
 //write.html에서 form태그 서버에 보내기
 app.post('/newPost', function(req, res){
-    res.send('전송완료');
     db.collection('counter').findOne({name : '게시물개수'}, function(err, result){
         console.log(result.totalPost);
         var totalPost = result.totalPost;
@@ -88,11 +116,54 @@ app.post('/newPost', function(req, res){
             db.collection('counter').updateOne({name : '게시물개수'}, { $inc : {totalPost : 1}}, function(err, result){
                     //$inc = operator라고 함 숫자를 증가 시킬 때 사용. 필요할 때 마다 검색
                     if(err) {return console.log(err)};
+                    res.send('전송완료');        
             });
          });    
     });
 });
 
+app.post('/login', passport.authenticate('local', {
+    //local이라는 방식으로 회원을 인증한다.
+    failureRedirect : '/fail'
+    //인증 실패시 /fail로 이동
+}) ,function(req, res) {
+    res.redirect('/');
+});
+
+//passport를 이용하여 user의 아이디, 비밀번호 DB에 저장된 값이랑 비교하기
+passport.use(new LocalStrategy({
+    usernameField: 'id',
+    passwordField: 'password',
+    //form에 있는 input창의 name 값
+    session: true,
+    passReqToCallback: false,
+  }, function ( userId, userPw, done) {
+      //userId = 유저가 입력한 아이디 userPw = 유저가 입력한 비번
+    //console.log( userId, userPw);
+    db.collection('login').findOne({ id:  userId }, function (err, result) {
+      if (err) return done(err)
+  
+      if (!result) return done(null, false, { message: '존재하지않는 아이디 입니다.' })
+      if (userPw == result.pw) {
+        return done(null, result)
+      } else {
+        return done(null, false, { message: '비번틀렸어요' })
+      }
+    })
+  }));
+
+passport.serializeUser(function(user, done) {
+    //로그인 성공시 세션을 저장시키는 코드 user라는 인자 값은 위의 if(userPw == result.pw)에서 return된 result값 (아이디 비번이 다 맞을 때 발동하는 코드 이므로)
+    done( null, user.id )
+    //id를 이용해서 세션을 저장시키는 코드
+    });
+passport.deserializeUser(function(id, done) {
+    //id == user.id
+    db.collection('login').findOne({ id : id }, function(err, result) {
+            //로그인 한 유저의 개인정보를 DB에서 찾는 역할
+        done(null, result);
+    });
+});
 
 app.delete('/delete', function(req, res) {
     console.log(req.body);
