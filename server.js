@@ -7,8 +7,7 @@ const methodOverride = require('method-override');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
-
-
+require('dotenv').config();
 
 app.use(methodOverride('_method'));
 app.use(session({secret : '비밀코드', resave: true, saveUninitialized: false}));
@@ -24,14 +23,14 @@ app.use('/public', express.static('public'));
 app.use(bodyParser.urlencoded({extended : true }));
 
 var db;
-MongoClient.connect('mongodb+srv://ID:PW@cluster0.hthnk.mongodb.net/DBNAME?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
+MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(err, client) {
     
     if(err) return console.log(err)
 
     db = client.db('todoapp');
 
-    app.listen(8000, function () {
-        console.log('listening on 8000');
+    app.listen(process.env.PORT, function () {
+        console.log('listening on 8080');
     });
 });
 
@@ -172,4 +171,38 @@ app.delete('/delete', function(req, res) {
         console.log('complete delete');
         res.status(200).send({message : ' delete success!'});
     });
+});
+
+
+app.use('/shop', require('./routes/shop.js'));
+//route폴더에 있는 shop.js를 불러올 때 쓰는 문법
+
+app.use('/board/sub', require('./routes/board.js'));
+
+app.get('/upload', function(req, res) {
+    res.render('upload.ejs');
+});
+
+let multer = require('multer');
+var storage = multer.diskStorage({
+    //diskStorage = 하드에 저장하기, memoryStorage = RAM에 저장하기 (휘발성)
+    destination : function(req, file, cb) {
+        cb(null, './public/image');
+        //저장 경로
+    },
+    filename : function(req, file, cb) {
+        cb(null, file.originalname);
+        //저장시 파일 원명 그대로 저장하기
+    }
+});
+
+var upload = multer({ storage : storage });
+app.post('/upload', upload.single('profile'), function(req, res) {
+    //upload.single('이미지를 받아오는 input의 name 값')
+    //upload.single 대신 upload.array('profile', 10)라고 변경하면 10개까지 다중 선택 가능 / 단 input도 바꿔야 됨.
+    res.send('업로드 완료');
+});
+
+app.get('/image/:imageName', function(req, res) {
+    res.sendFile( __dirname + '/public/image/' + req.params.imageName )
 });
