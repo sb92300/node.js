@@ -7,6 +7,9 @@ const methodOverride = require('method-override');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+
 require('dotenv').config();
 
 app.use(methodOverride('_method'));
@@ -29,7 +32,7 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(e
 
     db = client.db('todoapp');
 
-    app.listen(process.env.PORT, function () {
+    http.listen(process.env.PORT, function () {
         console.log('listening on 8080');
     });
 });
@@ -85,6 +88,9 @@ app.get('/mypage', checkLogin, function(req, res) {
     //('mypage.ejs', {이 중괄호를 이용하여 ejs 안에 데이터를 넣을 수 있음})
 });
 
+app.get('/chat', function(req, res) {
+    res.render('chat.ejs');
+});
 function checkLogin(req, res , next) {
     if(req.user) {
         next();
@@ -206,3 +212,15 @@ app.post('/upload', upload.single('profile'), function(req, res) {
 app.get('/image/:imageName', function(req, res) {
     res.sendFile( __dirname + '/public/image/' + req.params.imageName )
 });
+
+io.on('connection', function(socket) {
+    //socket.io 문법, socket이 연결 될 때마다
+    //console.log 실행 / chat.ejs에 연결되어 있기에 chat.ejs에 접근하면 콘솔 뜸
+    console.log('socket is connection!');
+
+    socket.on('chat', function(data) {
+        //인사말이라는 이벤트가 발생하면 (chat.ejs에서 보낸 것) 코드 실행
+        console.log(data);
+    })
+});
+
