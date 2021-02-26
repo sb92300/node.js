@@ -16,7 +16,10 @@ app.use(methodOverride('_method'));
 app.use(session({secret : '비밀코드', resave: true, saveUninitialized: false}));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/shop', require('./routes/shop.js'));
+//route폴더에 있는 shop.js를 불러올 때 쓰는 문법
 
+app.use('/board/sub', require('./routes/board.js'));
 app.set('view engine', 'ejs');
 
 
@@ -100,6 +103,10 @@ function checkLogin(req, res , next) {
     }
 }
 
+app.get('/ownerCheck', function() {
+    res.render('ownerCheck.ejs');
+});
+
 app.put('/edit', function(req, res) {
     db.collection('post').updateOne({_id : parseInt(req.body.id)}, {$set : {제목 : req.body.title , 날짜 : req.body.date }}, function(err, result) {
     // edit.ejs에서 input의 값을 가져올 때, req.body.input의 name 값 + int 값 이므로 parseInt 
@@ -179,12 +186,6 @@ app.delete('/delete', function(req, res) {
     });
 });
 
-
-app.use('/shop', require('./routes/shop.js'));
-//route폴더에 있는 shop.js를 불러올 때 쓰는 문법
-
-app.use('/board/sub', require('./routes/board.js'));
-
 app.get('/upload', function(req, res) {
     res.render('upload.ejs');
 });
@@ -221,6 +222,7 @@ io.on('connection', function(socket) {
     socket.on('chat', function(data) {
         //인사말이라는 이벤트가 발생하면 (chat.ejs에서 보낸 것) 코드 실행
         console.log(data);
+        io.emit('share', data);
     })
 });
 
